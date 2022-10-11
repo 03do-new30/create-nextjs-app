@@ -2,6 +2,8 @@ This is a starter template for [Learn Next.js](https://nextjs.org/learn).
 
 # 새로 배운것
 
+> 출처: https://nextjs.org/docs
+
 *****
 
 # Link Component
@@ -83,4 +85,32 @@ You create routes as files under pages and use the built-in Link component. No r
     - 적절하지 않은 경우
         - 유저의 요청보다 먼저 페이지를 렌더할 수 없는 경우
         - 페이지가 자주 업데이트되는 데이터를 가지거나, 각 요청마다 페이지 내용이 변화할 떄 -> `Server Side Rendering`
+
+## Static Generation with Data
+![img](https://nextjs.org/static/images/learn/data-fetching/static-generation-with-data.png)
+
+- Static generation with Data using `getStaticProps`
+    - Next.js에서 페이지 컴포넌트를 export하면, `getStaticProps`라는 `async` 펑션도 export 가능
+        - `getStaticProps` runs at build time in production, and
+        - **Inside the function, you can fetch external data and send it as props to the page**
+
+    - `getStaticProps`: Next.js야 이 페이지 data dependency 있으니까 너 이 페이지 빌드 타임에 pre-render할 때, data 먼저 해결해라
+    - (development mode에서는 `getStaticProps`가 매 요청마다 실행된다.)
+
+    ```
+    export default function Home(props) { ... }
+
+    export async function getStaticProps() {
+    // Get external data from the file system, API, DB, etc.
+    const data = ...
+
+    // The value of the `props` key will be
+    //  passed to the `Home` component
+    return {
+        props: ...
+    }
+    }
+    ```
+
+    ![img](https://nextjs.org/static/images/learn/data-fetching/index-page.png)    
 
