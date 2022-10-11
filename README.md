@@ -114,3 +114,83 @@ You create routes as files under pages and use the built-in Link component. No r
 
     ![img](https://nextjs.org/static/images/learn/data-fetching/index-page.png)    
 
+
+## getStaticProps Details
+### Fetch External API or Query Database
+- fetched data from other sources (external API endpoint)
+```
+export async function getSortedPostsData() {
+  // Instead of the file system,
+  // fetch post data from an external API endpoint
+  const res = await fetch('..');
+  return res.json();
+}
+```
+
+- query DB directly
+```
+import someDatabaseSDK from 'someDatabaseSDK'
+
+const databaseClient = someDatabaseSDK.createClient(...)
+
+export async function getSortedPostsData() {
+  // Instead of the file system,
+  // fetch post data from a database
+  return databaseClient.query('SELECT posts...')
+}
+```
+
+- 이것들이 가능한 이유 -> `getStaticProps`는 only **runs on the server-side**
+    - never run on the client-side
+    - won't even be included in the JS bundle for the browser
+    - You can write code such as direct DB queries without them being sent to browsers
+
+### Development Vs. Production
+- Development
+    - `npm run dev` or `yarn dev`
+    - `getStaticProps` runs on every request
+- Production
+    - `getStaticProps` runs at build time
+    - However, this behavior can be enhanced using the `fallback` key returned by `getStaticPaths`
+- 빌드타임에 실행되게 되어있으므로, 당신은 **query Parameter**나 **HTTP headers**같은 request time에만 사용 가능한 데이터를 쓰지 못할 것이다.
+
+### Only Allowed in a Page
+- `getStaticProps`는 오직 page로부터 export 될 수 있다. 페이지가 아닌 파일에서는 export 불가능.
+- 이런 제한이 있는 이유는 React는 페이지가 렌더되기 전에 모든 필요 데이터를 갖고 있어야 하기 때문이다.
+
+### What If I Need to Fetch Data at Request Time?
+- Static Generation은 build time에 딱 한 번 일어나기 때문에 자주 바뀌어야 하는 데이터나 유저의 요청에 반응해야 하는 것에는 적절하지 않다.
+- 데이터가 바뀌는 이런 상황에서는 **Server-side Rendering**을 사용할 수 있다. 
+- 그니까 `getStaticProps`는 client side라는 것
+
+## Fetching Data at Request Time
+> 빌드 타임이 아닌, 리퀘스트 타임에 데이터를 가져와야 한다면 Server-Side Rendering!
+
+### Using `getServerSideProps`
+```
+export async function getServerSideProps(context) {
+  return {
+    props: {
+      // props for your component
+    },
+  };
+}
+```
+- `getServerSideProps`가 리퀘스트 타임에 호출되므로 parameter인 `context`는 request specific parameters를 포함한다.
+- 반드시 데이터가 request time에 fetch되어야 하는 페이지를 pre-render 할 때만 `getServerSideProps`를 사용해라
+    - Time to first byte (TTFB)가 `getStaticProps`를 사용할 때보다 느릴 것
+    - 서버가 매 요청마다 결과를 계산해야 하고, 그 결과는 extra configuration 없이는 CDN으로 캐싱되지 않을 것이기 때문이다.
+
+## Client-side Rendering
+- If you **do not** need to pre-render the data Client-side rendering 전략 취할 수도 있다.
+    - Statically generate (pre-render) parts of the page that do not require external data
+    - When the page loads, fetch external data from the client using JS and populate the remaning parts.
+
+- Private, user-specifig pages에 적합 (SEO 필요 없을 때)
+
+![img](https://nextjs.org/static/images/learn/data-fetching/client-side-rendering.png)
+
+### SWR
+- client side에서 data fetching할 때 쓰라고 Next.js가 만든 React hook
+- cacing, revalidation, focus tracking, reteching on interval, ...
+- 관심 있으면 찾아보기
