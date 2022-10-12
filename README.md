@@ -315,3 +315,33 @@ export async function getStaticProps({ params }) {
 - To create a custom 404 page, create `pages/404.js`
 
 *****
+
+# API Routes
+
+## Creatine API Routes
+- API endpoint를 만들 수 있게 해줌
+- `pages/api` 에 function을 만들면 됨
+- can be deployed as Serverless Functions (also known as lambdas)
+
+### localhost:3000/api/hello
+- pages/api/hello.js 생성
+```
+export default function handler(req, res) {
+  res.status(200).json({ text: 'Hello' });
+}
+```
+
+## API Routes Details
+### Do Not Fetch an API Route from `getStaticProps` or `getStaticPaths`
+- 대신, `getStaticProps`, `getStaticPaths` 내부에 서버 사이드 코드를 직접 작성하라
+- 아니면 helper function을 호출
+
+- `getStaticProps`, `getStaticPaths`는 서버사이드에서만 실행되고 클라이언트 사이드에서는 실행 X
+- 또, 이런 함수들은 브라우저를 위한 JS 번들에는 포함되지 않을 것 (DB 쿼리에 쓰기 좋음)
+
+### Good Use Case: Handling From INput
+- 폼 작성 뒤 `POST` -> DB에 저장하는 코드를 작성
+- API route code는 클라이언트 번들에 포함이 되지 않으므로 안전하게 서버사이드 코드를 작성할 수 있다.
+
+### Dynamic API Routes
+- API routes들도 다이나믹할 수 있다.
