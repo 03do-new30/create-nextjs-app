@@ -194,3 +194,124 @@ export async function getServerSideProps(context) {
 - client side에서 data fetching할 때 쓰라고 Next.js가 만든 React hook
 - cacing, revalidation, focus tracking, reteching on interval, ...
 - 관심 있으면 찾아보기
+
+*****
+
+# Dynamic Routes
+> 블로그 데이터마다 URL이 있어서, 포스트를 열람했으면 좋겠다!
+
+## Page Path Depends on External Data
+![img](https://nextjs.org/static/images/learn/dynamic-routes/page-path-external-data.png)
+- Next.js allows you to statically generate pages with paths that depend on external data -> enables **dynamic URLs** in Next.js
+- Graphic Summary
+    ![img](https://nextjs.org/static/images/learn/dynamic-routes/how-to-dynamic-routes.png) 
+
+
+## Implement getStaticPaths
+- getAllPostIds function (lib/posts.js)
+```
+export function getAllPostIds() {
+  const fileNames = fs.readdirSync(postsDirectory);
+
+  // Returns an array that looks like this:
+  // [
+  //   {
+  //     params: {
+  //       id: 'ssg-ssr'
+  //     }
+  //   },
+  //   {
+  //     params: {
+  //       id: 'pre-rendering'
+  //     }
+  //   }
+  // ]
+  return fileNames.map((fileName) => {
+    return {
+      params: {
+        id: fileName.replace(/\.md$/, ''),
+      },
+    };
+  });
+}
+```
+    - 중요: 반환되는 리스트는 array of objects(not strings)
+    - 각각의 object는 `params` key를 가져야 하고, `id` key를 가진 object를 value로 해야 한다.
+    - 우리가 file name에서 `[id]`를 사용하고 있기 때문
+    - 이렇게 하지 않으면 `getStaticPaths` 실패
+
+- getStaticPaths (pages/posts/[id].js)
+```
+import { getAllPostIds } from '../../lib/posts';
+
+export async function getStaticPaths() {
+  const paths = getAllPostIds();
+  return {
+    paths,
+    fallback: false,
+  };
+}
+```
+
+## Dynamic Routes Details
+### Development vs. Production
+- Development
+    - `npm run dev` or `yarn dev`
+    - `getStaticPaths` runs on every request
+- Production
+    - `getStaticPaths` runs at build time
+
+### Fallback
+```
+export async function getStaticPaths(){
+    const paths = getAllPostIds();
+    return{
+        paths,
+        fallback: false,
+    }
+}
+```
+- `fallback`의 의미
+    - `fallback: false`
+        - `getStaticPaths`가 리턴하지 않았던 경로 -> **404page**
+    - `fallback: true`
+        - `getStaticPaths`의 behavior 변화
+        - `getStaticPaths`로 리턴받은 paths들은 build time에 HTML로 렌더
+        - build time에 생성되지 않은 paths -> 404 page 뜨지 않음.
+        대신, Next.js가 그런 path에 처음 접근했을 때, 그 페이지의 "fallback" version을 띄움.
+        - In the background, Next.js will statically generate the requested path. Subsequent requests to the same path will serve the generated page, just like other pages pre-rendered at build time.
+    - `fallback: blocking`
+        - New paths will be server-side rendered with `getStaticProps`, and cached for future requests so it only happends once per path
+
+### Catch-all Routes
+- Dynamic routes can be extended to catch all paths by adding `...`
+    - `pages/posts/[...id].js` matches `/posts/a`, but also `/posts/a/b`, `/posts/a/b/c` and so on.
+
+- If you do this, in getStaticPaths, you must return an array as the value of the id key like so:
+```
+return [
+  {
+    params: {
+      // Statically Generates /posts/a/b/c 🐶
+      id: ['a', 'b', 'c'],
+    },
+  },
+  //...
+];
+```
+
+- And `params.id` will be an array in getStaticProps:
+```
+export async function getStaticProps({ params }) {
+  // params.id will be like ['a', 'b', 'c']
+}
+```
+
+
+### Router
+- Next.js router -> import 'useRouter' hook from 'next/router'
+
+### 404 Pages
+- To create a custom 404 page, create `pages/404.js`
+
+*****
